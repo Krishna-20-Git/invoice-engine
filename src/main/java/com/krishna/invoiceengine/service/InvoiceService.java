@@ -1,5 +1,6 @@
 package com.krishna.invoiceengine.service;
 
+import com.krishna.invoiceengine.kafka.InvoiceProducer;
 import com.krishna.invoiceengine.model.Invoice;
 import com.krishna.invoiceengine.repository.InvoiceRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,12 +12,15 @@ import java.util.List;
 public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
+    private final InvoiceProducer invoiceProducer;
 
     public Invoice createInvoice(String companyName, Double amount) {
         Invoice invoice = new Invoice();
         invoice.setCompanyName(companyName);
         invoice.setAmount(amount);
-        return invoiceRepository.save(invoice);
+        Invoice saved = invoiceRepository.save(invoice);
+        invoiceProducer.sendInvoice(saved.getId());
+        return saved;
     }
 
     public List<Invoice> getAllInvoices() {

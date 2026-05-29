@@ -1,5 +1,8 @@
 package com.krishna.invoiceengine.controller;
 
+import com.krishna.invoiceengine.service.BulkInvoiceService;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.Map;
 import com.krishna.invoiceengine.model.Invoice;
 import com.krishna.invoiceengine.service.InvoiceService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +16,7 @@ import java.util.List;
 public class InvoiceController {
 
     private final InvoiceService invoiceService;
+    private final BulkInvoiceService bulkInvoiceService;
 
     @PostMapping
     public ResponseEntity<Invoice> createInvoice(
@@ -35,5 +39,17 @@ public class InvoiceController {
     @GetMapping("/status/{status}")
     public ResponseEntity<List<Invoice>> getByStatus(@PathVariable String status) {
         return ResponseEntity.ok(invoiceService.getInvoicesByStatus(status));
+    }
+    @PostMapping("/upload-csv")
+    public ResponseEntity<?> uploadCsv(@RequestParam("file") MultipartFile file) {
+        try {
+            int count = bulkInvoiceService.processCsvUpload(file);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Successfully queued " + count + " invoices for processing",
+                    "count", count
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

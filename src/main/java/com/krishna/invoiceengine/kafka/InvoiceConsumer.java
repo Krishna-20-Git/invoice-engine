@@ -5,12 +5,16 @@ import com.krishna.invoiceengine.repository.InvoiceRepository;
 import com.krishna.invoiceengine.service.PdfGeneratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
-@RequiredArgsConstructor
 @Slf4j
+@RequiredArgsConstructor
+@ConditionalOnProperty(name = "spring.kafka.bootstrap-servers", havingValue = "localhost:9092", matchIfMissing = false)
 public class InvoiceConsumer {
 
     private final InvoiceRepository invoiceRepository;
@@ -19,25 +23,25 @@ public class InvoiceConsumer {
     @KafkaListener(topics = "invoice-processing", groupId = "invoice-group")
     public void processInvoice(String invoiceId) {
         log.info("Received invoice from Kafka: {}", invoiceId);
+        Invoice invoice = invoiceRepository.findById(invoiceId).orElse(null);
+        if (invoice == null) return;
+
+        invoice.setStatus("PROCESSING");
+        invoiceRepository.save(invoice);
+        log.info("Invoice {} is now PROCESSING", invoiceId);
 
         try {
-            Invoice invoice = invoiceRepository.findById(invoiceId)
-                    .orElseThrow(() -> new RuntimeException("Invoice not found: " + invoiceId));
-
-            invoice.setStatus("PROCESSING");
-            invoiceRepository.save(invoice);
-            log.info("Invoice {} is now PROCESSING", invoiceId);
-
-            // Generate PDF
-            String pdfPath = pdfGeneratorService.generateInvoicePdf(invoice);
-            log.info("PDF generated at: {}", pdfPath);
-
-            invoice.setStatus("DONE");
-            invoiceRepository.save(invoice);
-            log.info("Invoice {} is DONE", invoiceId);
-
+            pdfGeneratorService.generateInvoicePdf(invoice);
         } catch (Exception e) {
-            log.error("Error processing invoice {}: {}", invoiceId, e.getMessage());
+            log.error("Failed to generate PDF for invoice {}", invoiceId, e);
+            invoice.setStatus("FAILED");
+            invoiceRepository.save(invoice);
+            return;
         }
+
+
+        invoice.setStatus("DONE");
+        invoiceRepository.save(invoice);
+        log.info("Invoice {} is DONE", invoiceId);
     }
 }

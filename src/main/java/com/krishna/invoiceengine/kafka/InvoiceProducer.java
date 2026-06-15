@@ -1,20 +1,26 @@
 package com.krishna.invoiceengine.kafka;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class InvoiceProducer {
 
-    private final KafkaTemplate<String, String> kafkaTemplate;
-    private static final String TOPIC = "invoice-processing";
+    @Autowired(required = false)
+    private KafkaTemplate<String, String> kafkaTemplate;
 
-    public void sendInvoice(String invoiceId) {
-        kafkaTemplate.send(TOPIC, invoiceId);
-        log.info("Sent invoice to Kafka topic: {}", invoiceId);
+    public void sendInvoice(UUID invoiceId) {
+        if (kafkaTemplate != null) {
+            kafkaTemplate.send("invoice-processing", invoiceId.toString());
+            log.info("Sent invoice to Kafka: {}", invoiceId);
+        } else {
+            log.info("Kafka not available - skipping message for invoice: {}", invoiceId);
+        }
     }
 }

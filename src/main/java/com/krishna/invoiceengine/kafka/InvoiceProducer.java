@@ -15,7 +15,7 @@ public class InvoiceProducer {
     @Autowired(required = false)
     private KafkaTemplate<String, String> kafkaTemplate;
 
-    public void sendInvoice(UUID invoiceId) {
+    public void sendInvoice(String invoiceId) {
         if (kafkaTemplate != null) {
             kafkaTemplate.send("invoice-processing", invoiceId.toString());
             log.info("Sent invoice to Kafka: {}", invoiceId);

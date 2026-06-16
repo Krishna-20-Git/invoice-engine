@@ -1,10 +1,10 @@
 package com.krishna.invoiceengine.service;
 
-import com.krishna.invoiceengine.kafka.InvoiceProducer;
 import com.krishna.invoiceengine.model.Invoice;
 import com.krishna.invoiceengine.repository.InvoiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 
 @Service
@@ -12,14 +12,14 @@ import java.util.List;
 public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
-    private final InvoiceProducer invoiceProducer;
+    private final PdfGeneratorService pdfGeneratorService;
 
     public Invoice createInvoice(String companyName, Double amount) {
         Invoice invoice = new Invoice();
         invoice.setCompanyName(companyName);
         invoice.setAmount(amount);
         Invoice saved = invoiceRepository.save(invoice);
-        invoiceProducer.sendInvoice(saved.getId());
+        pdfGeneratorService.processInvoiceAsync(saved);
         return saved;
     }
 

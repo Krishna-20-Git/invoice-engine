@@ -12,6 +12,9 @@ public class CorsConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
+        config.addAllowedOrigin("http://localhost:3000");
+        config.addAllowedOrigin("http://localhost:3001");
+        config.addAllowedOriginPattern("https://*.vercel.app");
         config.addAllowedOrigin("https://invoice-frontend-tau-lemon.vercel.app");
         config.addAllowedMethod("*");
         config.addAllowedHeader("*");
